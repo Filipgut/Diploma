@@ -88,28 +88,16 @@
                 android:layout_weight="1"
                 android:background="@color/BLACK"
                 android:orientation="horizontal"
-                android:weightSum="3">
+                android:weightSum="1">
+                <SeekBar
+                    android:id="@+id/tempSeekBar"
+                    android:min="150"
+                    android:max="300"
+                    android:progress="200"
+                    android:paddingTop="20dp"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content" />
 
-                <ImageButton
-                    android:id="@+id/brightness"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@drawable/birghtness" />
-
-                <ImageButton
-                    android:id="@+id/settings"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@drawable/settings" />
-
-                <ImageButton
-                    android:id="@+id/more"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@drawable/more" />
 
             </LinearLayout>
 

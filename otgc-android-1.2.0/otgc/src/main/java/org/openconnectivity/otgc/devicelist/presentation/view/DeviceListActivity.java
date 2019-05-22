@@ -34,12 +34,14 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -58,6 +60,7 @@ import org.openconnectivity.otgc.settings.presentation.view.SettingsActivity;
 import org.openconnectivity.otgc.wlanscan.presentation.view.WlanScanActivity;
 
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.inject.Inject;
@@ -79,15 +82,23 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
     @Inject
     ViewModelProvider.Factory mViewModelFactory;
 
-    @BindView(R.id.progress_bar) ProgressBar mProgressBar;
-    @BindView(R.id.toolbar) Toolbar mToolbar;
-    @BindView(R.id.temperature) TextView mTemperature;
-    @BindView(R.id.set_temperature) TextView setTemperature;
-    @BindView(R.id.time) TextView time;
-    @BindView(R.id.humidity) TextView mHumidity;
+    @BindView(R.id.progress_bar)
+    ProgressBar mProgressBar;
+    @BindView(R.id.toolbar)
+    Toolbar mToolbar;
+    @BindView(R.id.temperature)
+    TextView mTemperature;
+    @BindView(R.id.set_temperature)
+    TextView setTemperature;
+    @BindView(R.id.time)
+    TextView time;
+    @BindView(R.id.humidity)
+    TextView mHumidity;
+    @BindView(R.id.tempSeekBar)
+    SeekBar seekBar;
 
     private DeviceListViewModel mViewModel;
-
+    private Float ambient_temperature;
     private Float setTempRoom = new Float(20.0);
     private SensorManager mSensorManager;
     private Sensor mSensorTemperature;
@@ -229,12 +240,38 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
             mTemperature.setText(NOT_SUPPORTED_MESSAGE);
         }
         timeThread();
-        humidity = mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);
+        tempToSet(setTemperature, "Set to: ", setTempRoom.toString());
+        getHumiditySensorData();
+        seekBarListener();
 
-        setTemperature.setText("Set to: " + setTempRoom.toString());
-        mHumidity.setText(String.format("%.3f %%", humidity.getPower()));
 
     }
+
+    private void seekBarListener() {
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                i /= 5;
+                i *= 5;
+                Float progress = Float.valueOf(i);
+                setTempRoom = progress / 10;
+                tempToSet(setTemperature, "Set to: ", setTempRoom.toString());
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                if(setTempRoom > ambient_temperature){
+                    Log.d("TAG","II mai mare");
+                }
+            }
+        });
+    }
+
 
     private void timeThread() {
         final String[] currentDateTimeString = {DateFormat.getDateTimeInstance().format(new Date())};
@@ -249,11 +286,11 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                currentDateTimeString[0] = DateFormat.getDateTimeInstance().format(new Date());
+                                currentDateTimeString[0] = new SimpleDateFormat("dd/MM/yy HH:mm").format(new Date());
                                 time.setText(currentDateTimeString[0]);
                             }
                         });
-                        Thread.sleep(1000);  //1000ms = 1 sec
+                        Thread.sleep(60000);  //1000ms = 1 sec
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -285,8 +322,8 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
         SharedViewModel sharedViewModel = ViewModelProviders.of(this, mViewModelFactory).get(SharedViewModel.class);
         sharedViewModel.getLoading().observe(this, this::processing);
         sharedViewModel.getDisconnected().observe(this, isDisconnected -> {
-                processing(false);
-                goToWlanConnectSSID();
+            processing(false);
+            goToWlanConnectSSID();
         });
     }
 
@@ -335,8 +372,8 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
 
     private void processLogoutResponse(Response<Void> response) {
         if (response.status.equals(Status.SUCCESS)) {
-                startActivity(new Intent(DeviceListActivity.this, LoginActivity.class));
-                finish();
+            startActivity(new Intent(DeviceListActivity.this, LoginActivity.class));
+            finish();
         }
     }
 
@@ -397,15 +434,15 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
     @Override
     public void onSensorChanged(SensorEvent event) {
         String tempStr;
-        if(event.sensor.getType() == Sensor.TYPE_AMBIENT_TEMPERATURE) {
-            float ambient_temperature = event.values[0];
+        if (event.sensor.getType() == Sensor.TYPE_AMBIENT_TEMPERATURE) {
+            ambient_temperature = event.values[0];
             if (Math.abs(ambient_temperature) < 10)
                 tempStr = String.valueOf(ambient_temperature).substring(0, 3) + getResources().getString(R.string.celsius);
             else
                 tempStr = String.valueOf(ambient_temperature).substring(0, 4) + getResources().getString(R.string.celsius);
 
-            mTemperature.setText("" + tempStr);
-        }else if (event.sensor.getType() == Sensor.TYPE_RELATIVE_HUMIDITY){
+            tempToSet(mTemperature, "", tempStr);
+        } else if (event.sensor.getType() == Sensor.TYPE_RELATIVE_HUMIDITY) {
             float ambient_humidity = event.values[0];
             mHumidity.setText(String.format("%.3f %%", ambient_humidity));
         }
@@ -414,5 +451,23 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         // Do something here if sensor accuracy changes.
+    }
+
+    private void setTemp(TextView setTemperature, String s, String s2) {
+        setTemperature.setText(s + s2);
+    }
+
+    private void tempToSet(TextView setTemperature, String s, String s2) {
+        setTemp(setTemperature, s, s2);
+    }
+
+    private void getHumiditySensorData() {
+        humidity = mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);
+        if (humidity == null) {
+            mHumidity.setTextSize(20);
+            mHumidity.setText(NOT_SUPPORTED_MESSAGE);
+        } else {
+            mHumidity.setText(String.format("%.3f %%", humidity.getPower()));
+        }
     }
 }
