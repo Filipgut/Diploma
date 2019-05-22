@@ -232,7 +232,7 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
         humidity = mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);
 
         setTemperature.setText("Set to: " + setTempRoom.toString());
-        mHumidity.setText(String.format("%.3f %", humidity.getPower()));
+        mHumidity.setText(String.format("%.3f %%", humidity.getPower()));
 
     }
 
@@ -407,7 +407,7 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
             mTemperature.setText("" + tempStr);
         }else if (event.sensor.getType() == Sensor.TYPE_RELATIVE_HUMIDITY){
             float ambient_humidity = event.values[0];
-            mHumidity.setText(String.format("%.3f %", ambient_humidity));
+            mHumidity.setText(String.format("%.3f %%", ambient_humidity));
         }
     }
 
