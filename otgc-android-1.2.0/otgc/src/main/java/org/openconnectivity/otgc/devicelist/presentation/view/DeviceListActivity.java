@@ -25,6 +25,11 @@ import android.app.AlertDialog;
 import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
@@ -35,9 +40,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.iotivity.base.OcProvisioning;
+import org.openconnectivity.otgc.R;
 import org.openconnectivity.otgc.common.presentation.view.RecyclerWithSwipeFragment;
 import org.openconnectivity.otgc.common.presentation.viewmodel.CommonError;
 import org.openconnectivity.otgc.common.presentation.viewmodel.Response;
@@ -46,10 +53,12 @@ import org.openconnectivity.otgc.common.presentation.viewmodel.ViewModelError;
 import org.openconnectivity.otgc.devicelist.presentation.viewmodel.DeviceListViewModel;
 import org.openconnectivity.otgc.devicelist.presentation.viewmodel.SharedViewModel;
 import org.openconnectivity.otgc.login.presentation.view.LoginActivity;
-import org.openconnectivity.otgc.R;
-import org.openconnectivity.otgc.settings.presentation.view.SettingsActivity;
 import org.openconnectivity.otgc.logviewer.presentation.view.LogViewerActivity;
+import org.openconnectivity.otgc.settings.presentation.view.SettingsActivity;
 import org.openconnectivity.otgc.wlanscan.presentation.view.WlanScanActivity;
+
+import java.text.DateFormat;
+import java.util.Date;
 
 import javax.inject.Inject;
 
@@ -60,7 +69,9 @@ import dagger.android.DispatchingAndroidInjector;
 import dagger.android.support.HasSupportFragmentInjector;
 import timber.log.Timber;
 
-public class DeviceListActivity extends AppCompatActivity implements HasSupportFragmentInjector {
+public class DeviceListActivity extends AppCompatActivity implements SensorEventListener, HasSupportFragmentInjector {
+
+    private final static String NOT_SUPPORTED_MESSAGE = "Sorry, sensor not available for this device.";
 
     @Inject
     DispatchingAndroidInjector<Fragment> dispatchingAndroidInjector;
@@ -70,8 +81,17 @@ public class DeviceListActivity extends AppCompatActivity implements HasSupportF
 
     @BindView(R.id.progress_bar) ProgressBar mProgressBar;
     @BindView(R.id.toolbar) Toolbar mToolbar;
+    @BindView(R.id.temperature) TextView mTemperature;
+    @BindView(R.id.set_temperature) TextView setTemperature;
+    @BindView(R.id.time) TextView time;
+    @BindView(R.id.humidity) TextView mHumidity;
 
     private DeviceListViewModel mViewModel;
+
+    private Float setTempRoom = new Float(20.0);
+    private SensorManager mSensorManager;
+    private Sensor mSensorTemperature;
+    private Sensor humidity;
 
     // TODO: Refactor to avoid AlertDialog object
     private AlertDialog mConnectToWifiDialog = null;
@@ -147,7 +167,7 @@ public class DeviceListActivity extends AppCompatActivity implements HasSupportF
     @Override
     protected void onResume() {
         super.onResume();
-
+        mSensorManager.registerListener(this, mSensorTemperature, SensorManager.SENSOR_DELAY_NORMAL);
         mViewModel.checkIfIsConnectedToWifi();
     }
 
@@ -198,6 +218,50 @@ public class DeviceListActivity extends AppCompatActivity implements HasSupportF
 
     private void initViews() {
         setSupportActionBar(mToolbar);
+
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            mSensorTemperature = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE); // requires API level 14.
+        }
+
+        if (mSensorTemperature == null) {
+            mTemperature.setTextSize(20);
+            mTemperature.setText(NOT_SUPPORTED_MESSAGE);
+        }
+        timeThread();
+        humidity = mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);
+
+        setTemperature.setText("Set to: " + setTempRoom.toString());
+        mHumidity.setText(String.format("%.3f %", humidity.getPower()));
+
+    }
+
+    private void timeThread() {
+        final String[] currentDateTimeString = {DateFormat.getDateTimeInstance().format(new Date())};
+        time.setText(currentDateTimeString[0]);
+
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                while (!isInterrupted()) {
+                    try {
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                currentDateTimeString[0] = DateFormat.getDateTimeInstance().format(new Date());
+                                time.setText(currentDateTimeString[0]);
+                            }
+                        });
+                        Thread.sleep(1000);  //1000ms = 1 sec
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+
+        t.start();
     }
 
     private void initViewModel() {
@@ -320,5 +384,35 @@ public class DeviceListActivity extends AppCompatActivity implements HasSupportF
                     ).create();
             mConnectToWifiDialog.show();
         }
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mSensorManager.unregisterListener(this);
+    }
+
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        String tempStr;
+        if(event.sensor.getType() == Sensor.TYPE_AMBIENT_TEMPERATURE) {
+            float ambient_temperature = event.values[0];
+            if (Math.abs(ambient_temperature) < 10)
+                tempStr = String.valueOf(ambient_temperature).substring(0, 3) + getResources().getString(R.string.celsius);
+            else
+                tempStr = String.valueOf(ambient_temperature).substring(0, 4) + getResources().getString(R.string.celsius);
+
+            mTemperature.setText("" + tempStr);
+        }else if (event.sensor.getType() == Sensor.TYPE_RELATIVE_HUMIDITY){
+            float ambient_humidity = event.values[0];
+            mHumidity.setText(String.format("%.3f %", ambient_humidity));
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // Do something here if sensor accuracy changes.
     }
 }

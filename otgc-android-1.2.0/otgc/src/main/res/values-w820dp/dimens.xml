@@ -21,6 +21,7 @@
   ~  ******************************************************************
   -->
 
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <dimen name="activity_horizontal_margin">64dp</dimen>
+    <dimen name="temperature_text_size" tools:ignore="MissingDefaultResource">60dp</dimen>
 </resources>

@@ -187,4 +187,6 @@
     <string name="about_powered_by">Powered by:</string>
     <string name="about_dekra_tc" translatable="false">DEKRA Testing and Certification, S.A.U.</string>
 
+    <string name="celsius" translatable="false">\u00B0 C</string>
+
 </resources>
