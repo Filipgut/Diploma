@@ -44,6 +44,7 @@
                 android:layout_weight="1"
                 android:background="@color/BLACK"
                 android:text="Temp"
+                android:focusable="true"
                 android:textAlignment="center"
                 android:textColor="@android:color/white"
                 android:textSize="60dp" />

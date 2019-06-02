@@ -25,6 +25,7 @@ import android.app.AlertDialog;
 import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -266,7 +267,11 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 if(setTempRoom > ambient_temperature){
-                    Log.d("TAG","II mai mare");
+                    setTemperature.setTextColor(Color.RED);
+                } else if(setTempRoom < ambient_temperature){
+                    setTemperature.setTextColor(Color.rgb(0,191,255));
+                } else {
+                    setTemperature.setTextColor(Color.WHITE);
                 }
             }
         });
