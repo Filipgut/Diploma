@@ -226,7 +226,7 @@ public class WlanRepository {
             while (i < networks.length && !isConnected) {
                 NetworkInfo networkInfo = mConnManager.getNetworkInfo(networks[i]);
                 if (networkInfo != null) {
-                    if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                    if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
                         if (networkInfo.getState().equals(NetworkInfo.State.CONNECTED)) {
                             isConnected = true;
                         } else if (networkInfo.getState().equals(NetworkInfo.State.CONNECTING)) {
