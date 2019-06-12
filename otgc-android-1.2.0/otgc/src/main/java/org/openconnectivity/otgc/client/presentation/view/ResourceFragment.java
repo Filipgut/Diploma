@@ -276,7 +276,6 @@ public class ResourceFragment extends Fragment implements Injectable {
                                 }
                                 mViewModel.postRequest(mDeviceId, mResource.getUri(), mResource.getResourceTypes(), mResource.getResourceInterfaces(),
                                         rep);
-
                             }
                         });
                         /*EditText et = new EditText(getContext());

@@ -252,8 +252,8 @@ public class DeviceListActivity extends AppCompatActivity implements SensorEvent
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                i /= 5;
-                i *= 5;
+                i /= 1;
+                i *= 1;
                 Float progress = Float.valueOf(i);
                 setTempRoom = progress / 10;
                 tempToSet(setTemperature, "Set to: ", setTempRoom.toString());
